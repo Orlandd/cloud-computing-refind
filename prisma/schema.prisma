@@ -1,0 +1,56 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Crafts {
+  ID              Int            @id @default(autoincrement())
+  name            String         @db.VarChar(100)
+  tools_materials String         @db.Text
+  step            String         @db.Text
+  image           String?        @db.VarChar(255)
+  Trash_Crafts    Trash_Crafts[]
+}
+
+model Histories {
+  ID             Int          @id @default(autoincrement())
+  create_at      DateTime     @default(now()) @db.DateTime(0)
+  user_id        Int
+  trash_craft_id Int
+  Users          Users        @relation(fields: [user_id], references: [ID], onDelete: Cascade, onUpdate: NoAction, map: "Histories_ibfk_1")
+  Trash_Crafts   Trash_Crafts @relation(fields: [trash_craft_id], references: [ID], onDelete: Cascade, onUpdate: NoAction, map: "Histories_ibfk_2")
+
+  @@index([trash_craft_id], map: "trash_craft_id")
+  @@index([user_id], map: "user_id")
+}
+
+model Trash {
+  ID           Int            @id @default(autoincrement())
+  type         String         @db.VarChar(50)
+  treatment    String?        @db.VarChar(255)
+  Trash_Crafts Trash_Crafts[]
+}
+
+model Trash_Crafts {
+  ID        Int         @id @default(autoincrement())
+  trash_id  Int
+  craft_id  Int
+  Histories Histories[]
+  Trash     Trash       @relation(fields: [trash_id], references: [ID], onDelete: Cascade, onUpdate: NoAction, map: "Trash_Crafts_ibfk_1")
+  Crafts    Crafts      @relation(fields: [craft_id], references: [ID], onDelete: Cascade, onUpdate: NoAction, map: "Trash_Crafts_ibfk_2")
+
+  @@index([craft_id], map: "craft_id")
+  @@index([trash_id], map: "trash_id")
+}
+
+model Users {
+  ID        Int         @id @default(autoincrement())
+  username  String      @db.VarChar(100)
+  email     String      @unique(map: "email") @db.VarChar(100)
+  token     String      @db.VarChar(255)
+  Histories Histories[]
+}
