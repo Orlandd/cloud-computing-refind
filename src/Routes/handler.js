@@ -88,126 +88,145 @@ function login(request, h) {
 }
 
 async function loginCallback1(request, h) {
-  const tokens = request.payload;
+  try {
+    const {code} = request.payload;
+    // const { code } = request.query;
+    console.log(`code : ${(code)}`);
 
-  console.log(`tokens : ${JSON.stringify(tokens)}`);
-  
+    const {tokens} = await oauth2Client.getToken(code);
 
-  oauth2Client.setCredentials(tokens);
+    // console.log(`tokens : ${JSON.stringify(tokens)}`);
 
-  const Oauth2 = google.oauth2({
-    auth: oauth2Client,
-    version: 'v2'
-  })
+    oauth2Client.setCredentials(tokens);
 
-  const { data } = await Oauth2.userinfo.get();
+    const Oauth2 = google.oauth2({
+      auth: oauth2Client,
+      version: 'v2'
+    });
 
-  console.log(data);
+    const { data } = await Oauth2.userinfo.get();
 
-  if(!data.email || !data.name){
-      return res.json({
-          data: data,
-      })
-  }
+    // console.log(data);
 
-  let user = await prisma.Users.findUnique({
-                where: {
-                    email: data.email
-                }
-            })
+    if (!data.email || !data.name) {
+      return h.response({
+        error: 'Email or name missing',
+        data: data
+      }).code(400); // Bad Request
+    }
 
-  if(!user){
+    let user = await prisma.Users.findUnique({
+      where: {
+        email: data.email
+      }
+    });
+
+    if (!user) {
       user = await prisma.Users.create({
-          data: {
-              username: data.name,
-              email: data.email,
-              token: "asdas"
-          }
-      })
-  }
+        data: {
+          username: data.name,
+          email: data.email,
+          token: "asdas"
+        }
+      });
+    }
 
-  console.log(user);
+    // console.log(user);
 
-  const payload = {
+    const payload = {
       id: user?.id,
       name: user?.name,
       address: user?.address
-  }
+    };
 
-  const secret = process.env.JWT_SECRET;
-  const expiresIn = 60 * 60 * 1;
-  const token = jwt.sign(payload, secret, {expiresIn: expiresIn})
+    const secret = process.env.JWT_SECRET;
+    const expiresIn = 60 * 60 * 1;
+    const token = jwt.sign(payload, secret);
 
-
-  return h.response({
+    return h.response({
       data: {
-          id: user.ID,
-          name: user.username,
+        id: user.ID,
+        email: data.email,
+        picture: data.picture,
+        name: user.username,
       },
       token: token
-  }).code(200);
+    }).code(200);
+
+  } catch (error) {
+    console.error('Error during login callback:', error);
+
+    return h.response({
+      error: 'Internal Server Error',
+      message: error.message
+    }).code(500); // Internal Server Error
+  }
 }
 
 async function loginCallback (request, h) {
   const { code } = request.query;
-  const {tokens} = await oauth2Client.getToken(code);
+  // const {tokens} = await oauth2Client.getToken(code);
 
   console.log(`code : ${code}`);
-  console.log(`tokens : ${JSON.stringify(tokens)}`);
+  // console.log(`tokens : ${JSON.stringify(tokens)}`);
   
 
-  oauth2Client.setCredentials(tokens);
+  // oauth2Client.setCredentials(tokens);
 
-  const Oauth2 = google.oauth2({
-    auth: oauth2Client,
-    version: 'v2'
-  })
+  // const Oauth2 = google.oauth2({
+  //   auth: oauth2Client,
+  //   version: 'v2'
+  // })
 
-  const { data } = await Oauth2.userinfo.get();
+  // const { data } = await Oauth2.userinfo.get();
 
-  console.log(data);
+  // console.log(data);
 
-  if(!data.email || !data.name){
-      return res.json({
-          data: data,
-      })
-  }
+  // if(!data.email || !data.name){
+  //     return res.json({
+  //         data: data,
+  //     })
+  // }
 
-  let user = await prisma.Users.findUnique({
-                where: {
-                    email: data.email
-                }
-            })
+  // let user = await prisma.Users.findUnique({
+  //               where: {
+  //                   email: data.email
+  //               }
+  //           })
 
-  if(!user){
-      user = await prisma.Users.create({
-          data: {
-              username: data.name,
-              email: data.email,
-              token: "asdas"
-          }
-      })
-  }
+  // if(!user){
+  //     user = await prisma.Users.create({
+  //         data: {
+  //             username: data.name,
+  //             email: data.email,
+  //             token: "asdas"
+  //         }
+  //     })
+  // }
 
-  console.log(user);
+  // console.log(user);
 
-  const payload = {
-      id: user?.id,
-      name: user?.name,
-      address: user?.address
-  }
+  // const payload = {
+  //     id: user?.id,
+  //     name: user?.name,
+  //     address: user?.address
+  // }
 
-  const secret = process.env.JWT_SECRET;
-  const expiresIn = 60 * 60 * 1;
-  const token = jwt.sign(payload, secret, {expiresIn: expiresIn})
+  // const secret = process.env.JWT_SECRET;
+  // const expiresIn = 60 * 60 * 1;
+  // const token = jwt.sign(payload, secret, {expiresIn: expiresIn})
 
+
+  // return h.response({
+  //     data: {
+  //         id: user.ID,
+  //         name: user.username,
+  //     },
+  //     token: token
+  // }).code(200);
 
   return h.response({
-      data: {
-          id: user.ID,
-          name: user.username,
-      },
-      token: token
+      code
   }).code(200);
 }
 

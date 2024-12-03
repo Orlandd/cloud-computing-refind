@@ -14,8 +14,13 @@ const routes = [
     handler: handlers.login,
   },
   {
-    method: "POST",
+    method: "GET",
     path: "/auth/google/callback",
+    handler: handlers.loginCallback
+  },
+  {
+    method: "POST",
+    path: "/auth",
     handler: handlers.loginCallback1
   },
   {
