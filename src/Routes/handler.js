@@ -8,6 +8,8 @@ const { google } = require("googleapis");
 const jwt = require("jsonwebtoken");
 const { PrismaClient } = require('@prisma/client');
 const Boom = require('@hapi/boom');
+const blacklist = new Set();
+
 // let pool;
 
 const accessValidation = (request, h) => {
@@ -37,6 +39,30 @@ const accessValidation = (request, h) => {
   return h.continue;
 };
 
+// logout
+async function logout(request, h) {
+  try {
+      const { authorization } = request.headers;
+
+      if (!authorization || !authorization.startsWith('Bearer ')) {
+          return Boom.unauthorized('Access denied. Invalid or missing authorization header.');
+      }
+
+      const token = authorization.split(' ')[1];
+
+      if (token) {
+          blacklist.add(token);
+          console.log(`Token blacklisted: ${token}`);
+      }
+
+      return h.response({ message: 'Logged out successfully' }).code(200);
+  } catch (error) {
+      console.error('Logout Error:', error);
+      return Boom.internal('Something went wrong during logout.');
+  }
+}
+
+
 // Login 
 const prisma = new PrismaClient();
 const oauth2Client = new google.auth.OAuth2(
@@ -61,9 +87,74 @@ function login(request, h) {
   return h.redirect(authorizationUrl)
 }
 
+async function loginCallback1(request, h) {
+  const tokens = request.payload;
+
+  console.log(`tokens : ${JSON.stringify(tokens)}`);
+  
+
+  oauth2Client.setCredentials(tokens);
+
+  const Oauth2 = google.oauth2({
+    auth: oauth2Client,
+    version: 'v2'
+  })
+
+  const { data } = await Oauth2.userinfo.get();
+
+  console.log(data);
+
+  if(!data.email || !data.name){
+      return res.json({
+          data: data,
+      })
+  }
+
+  let user = await prisma.Users.findUnique({
+                where: {
+                    email: data.email
+                }
+            })
+
+  if(!user){
+      user = await prisma.Users.create({
+          data: {
+              username: data.name,
+              email: data.email,
+              token: "asdas"
+          }
+      })
+  }
+
+  console.log(user);
+
+  const payload = {
+      id: user?.id,
+      name: user?.name,
+      address: user?.address
+  }
+
+  const secret = process.env.JWT_SECRET;
+  const expiresIn = 60 * 60 * 1;
+  const token = jwt.sign(payload, secret, {expiresIn: expiresIn})
+
+
+  return h.response({
+      data: {
+          id: user.ID,
+          name: user.username,
+      },
+      token: token
+  }).code(200);
+}
+
 async function loginCallback (request, h) {
   const { code } = request.query;
   const {tokens} = await oauth2Client.getToken(code);
+
+  console.log(`code : ${code}`);
+  console.log(`tokens : ${JSON.stringify(tokens)}`);
+  
 
   oauth2Client.setCredentials(tokens);
 
@@ -537,6 +628,8 @@ module.exports = {
   indexCraft,
   historyByUserId,
   login,
+  logout,
+  loginCallback1, 
   loginCallback, 
   accessValidation,
 };
