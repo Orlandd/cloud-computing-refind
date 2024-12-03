@@ -119,6 +119,7 @@ async function loginCallback (request, h) {
       token: token
   }).code(200);
 }
+
 async function postPredictHandler(request, h) {
   const { image } = request.payload;
   // const { user } = request.payload;
@@ -156,9 +157,13 @@ async function postPredictHandler(request, h) {
     return response;
   }
 
+  console.log("testingg")
+
   const { label } = await predictClassification(model, image);
   const createdAt = new Date().toISOString();
   const [result, id, treatment] = await getDataCrafts(label);
+
+  console.log(`label : ${label}`)
 
   // cek result
   if (result.error) {
@@ -271,8 +276,12 @@ async function getDataCrafts(label) {
       }
     })
 
-    const id = rows?.ID;
-    const treatment = rows?.treatment;
+    const id = rows[0]?.ID;
+    const treatment = rows[0]?.treatment;
+
+
+    // console.log(`id trash : ${JSON.stringify(rows)}`)
+    // console.log(`id trash : ${id}`)
 
     // const query2 = `
     //     SELECT * 
@@ -341,14 +350,17 @@ async function indexCrafts(request, h) {
     // const query = `SELECT * FROM Trash WHERE type = ?;`;
     // const [rows] = await conn.query(query, [label]);
 
-    const rows = await prisma.trash.findMany({
+    const rows = await prisma.Trash.findMany({
       where: {
-        type: label 
+        type: label
       }
-    });
+    })
 
-    const id = rows?.ID;
-    const treatment = rows?.treatment;
+    const id = rows[0]?.ID;
+    const treatment = rows[0]?.treatment;
+
+    console.log(`id trash : ${JSON.stringify(rows)}`)
+    console.log(`id trash : ${id}`)
 
     // const query2 = `
     //     SELECT * 
@@ -435,29 +447,61 @@ async function historyByUserId(request, h) {
     // const conn = await pool.getConnection();
 
     // Query untuk mendapatkan data histori berdasarkan user_id
-    const query = `
-      SELECT 
-        H.ID AS history_id,
-        H.create_at,
-        U.username,
-        U.email,
-        T.type AS trash_type,
-        C.name AS craft_name,
-        C.tools_materials,
-        C.step
-      FROM Histories AS H
-      JOIN Users AS U ON H.user_id = U.ID
-      JOIN Trash_Crafts AS TC ON H.trash_craft_id = TC.ID
-      JOIN Trash AS T ON TC.trash_id = T.ID
-      JOIN Crafts AS C ON TC.craft_id = C.ID
-      WHERE H.user_id = ?;
-    `;
+    // const query = `
+    //   SELECT 
+    //     H.ID AS history_id,
+    //     H.create_at,
+    //     U.username,
+    //     U.email,
+    //     T.type AS trash_type,
+    //     C.name AS craft_name,
+    //     C.tools_materials,
+    //     C.step
+    //   FROM Histories AS H
+    //   JOIN Users AS U ON H.user_id = U.ID
+    //   JOIN Trash_Crafts AS TC ON H.trash_craft_id = TC.ID
+    //   JOIN Trash AS T ON TC.trash_id = T.ID
+    //   JOIN Crafts AS C ON TC.craft_id = C.ID
+    //   WHERE H.user_id = ?;
+    // `;
 
-    const [result] = await conn.query(query, [id]);
+    // const [result] = await conn.query(query, [id]);
+
+    const histories = await prisma.Histories.findMany({
+      where: {
+        user_id: Number(id), // Ganti 'user_id' sesuai dengan nama kolom di model Prisma Anda
+      },
+      select: {
+        ID: true, // Sesuaikan dengan nama field Prisma Anda
+        create_at: true,
+        Users: {
+          select: {
+            username: true,
+            email: true,
+          },
+        },
+        Trash_Crafts: {
+          select: {
+            Trash: {
+              select: {
+                type: true,
+              },
+            },
+            Crafts: {
+              select: {
+                name: true,
+                tools_materials: true,
+                step: true,
+              },
+            },
+          },
+        },
+      },
+    });
 
     // await conn.release();
 
-    if (result.length === 0) {
+    if (histories.length === 0) {
       const response = h.response({
         status: "fail",
         message: `No history found for user_id: ${id}`,
@@ -468,7 +512,7 @@ async function historyByUserId(request, h) {
 
     const response = h.response({
       status: "success",
-      result,
+      histories,
     });
     response.code(200);
 
