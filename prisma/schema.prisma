@@ -11,7 +11,7 @@ model Crafts {
   ID              Int            @id @default(autoincrement())
   name            String         @db.VarChar(100)
   tools_materials String         @db.Text
-  step            String         @db.Text
+  step            String?        @db.LongText
   image           String?        @db.VarChar(255)
   Trash_Crafts    Trash_Crafts[]
 }
@@ -53,4 +53,15 @@ model Users {
   email     String      @unique(map: "email") @db.VarChar(100)
   token     String      @db.VarChar(255)
   Histories Histories[]
+  Tokens    Tokens[]
+}
+
+model Tokens {
+  ID      Int    @id @default(autoincrement())
+  user_id Int
+  token   Json
+  jwt     String @unique(map: "jwt") @db.VarChar(255)
+  Users   Users  @relation(fields: [user_id], references: [ID], onDelete: Cascade, onUpdate: NoAction, map: "Tokens_ibfk_1")
+
+  @@index([user_id], map: "user_id")
 }

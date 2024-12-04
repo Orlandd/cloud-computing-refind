@@ -1,4 +1,4 @@
-const crypto = require("crypto");
+// const crypto = require("crypto");
 const predictClassification = require("../Service/inferenceService");
 const storeData = require("../Service/storeData");
 // const createPool = require("../Service/createPool");
@@ -9,6 +9,7 @@ const jwt = require("jsonwebtoken");
 const { PrismaClient } = require('@prisma/client');
 const Boom = require('@hapi/boom');
 const blacklist = new Set();
+const axios = require('axios');
 
 // let pool;
 
@@ -39,6 +40,17 @@ const accessValidation = (request, h) => {
   return h.continue;
 };
 
+
+const revokeToken = async (accessToken) => {
+  const revokeUrl = `https://accounts.google.com/o/oauth2/revoke?token=${accessToken}`;
+  try {
+      const response = await axios.get(revokeUrl);
+      console.log('Token revoked successfully:', response.status);
+  } catch (error) {
+      console.error('Error revoking token:', error.response ? error.response.data : error);
+  }
+};
+
 // logout
 async function logout(request, h) {
   try {
@@ -50,9 +62,28 @@ async function logout(request, h) {
 
       const token = authorization.split(' ')[1];
 
+
+
       if (token) {
-          blacklist.add(token);
-          console.log(`Token blacklisted: ${token}`);
+
+        let user = await prisma.Tokens.findUnique({
+          where: {
+            jwt: token
+          }
+        });
+
+        console.log(user.token.access_token);
+
+        revokeToken(user.token.access_token)
+
+        blacklist.add(token);
+
+        await prisma.Tokens.delete({
+          where: {
+            ID: user.ID
+          }
+        });
+
       }
 
       return h.response({ message: 'Logged out successfully' }).code(200);
@@ -95,7 +126,7 @@ async function loginCallback1(request, h) {
 
     const {tokens} = await oauth2Client.getToken(code);
 
-    // console.log(`tokens : ${JSON.stringify(tokens)}`);
+    console.log(`tokens : ${JSON.stringify(tokens)}`);
 
     oauth2Client.setCredentials(tokens);
 
@@ -142,6 +173,14 @@ async function loginCallback1(request, h) {
     const secret = process.env.JWT_SECRET;
     const expiresIn = 60 * 60 * 1;
     const token = jwt.sign(payload, secret);
+
+    await prisma.Tokens.create({
+      data: {
+        user_id: user.ID,
+        token: tokens,
+        jwt: token
+      }
+    });
 
     return h.response({
       data: {
