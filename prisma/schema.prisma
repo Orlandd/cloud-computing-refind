@@ -51,7 +51,7 @@ model Users {
   ID        Int         @id @default(autoincrement())
   username  String      @db.VarChar(100)
   email     String      @unique(map: "email") @db.VarChar(100)
-  token     String      @db.VarChar(255)
+  uid       String      @unique(map: "uid") @db.VarChar(255)
   Histories Histories[]
   Tokens    Tokens[]
 }
@@ -59,7 +59,6 @@ model Users {
 model Tokens {
   ID      Int    @id @default(autoincrement())
   user_id Int
-  token   Json
   jwt     String @unique(map: "jwt") @db.VarChar(255)
   Users   Users  @relation(fields: [user_id], references: [ID], onDelete: Cascade, onUpdate: NoAction, map: "Tokens_ibfk_1")
 

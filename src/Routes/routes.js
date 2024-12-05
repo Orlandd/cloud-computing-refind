@@ -8,35 +8,35 @@ const routes = [
       return "Hello World!";
     },
   },
-  {
-    method: "GET",
-    path: "/auth/google",
-    handler: handlers.login,
-  },
-  {
-    method: "GET",
-    path: "/auth/google/callback",
-    handler: handlers.loginCallback
-  },
-  {
-    method: "POST",
-    path: "/auth",
-    handler: handlers.loginCallback1
-  },
-  {
-    method: "POST",
-    path: "/logout",
-    handler: handlers.logout
-  },
+  // {
+  //   method: "GET",
+  //   path: "/auth/google",
+  //   handler: handlers.login,
+  // },
+  // {
+  //   method: "GET",
+  //   path: "/auth/google/callback",
+  //   handler: handlers.loginCallback
+  // },
+  // {
+  //   method: "POST",
+  //   path: "/auth",
+  //   handler: handlers.loginCallback1
+  // },
+  // {
+  //   method: "POST",
+  //   path: "/logout",
+  //   handler: handlers.logout
+  // },
   {
     method: "GET",
     path: "/trashes",
     handler: handlers.indexTrash,
-    options: {
-      pre: [
-        { method: handlers.accessValidation }
-    ]
-    }
+    // options: {
+    //   pre: [
+    //     { method: handlers.accessValidation }
+    // ]
+    // }
   },
   {
     method: "GET",
@@ -67,13 +67,13 @@ const routes = [
   },
   {
     method: 'GET',
-    path: '/history/{id}',
+    path: '/history/{id}/{uid}',
     handler: handlers.historyByUserId,
   },
   {
     method: 'POST',
     path: '/getUser',
-    handlers: handlers.firebaseLogin
+    handler: handlers.firebaseLogin
   }
 ];
 

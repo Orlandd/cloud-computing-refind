@@ -11,4 +11,4 @@ ENV GOOGLE_APPLICATION_CREDENTIALS="/app/credentials.json"
 
 EXPOSE 8080
 
-CMD ["npm", "run", "start"]
+CMD ["sh", "-c", "npx prisma generate && npm run start"]
