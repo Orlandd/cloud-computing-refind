@@ -10,6 +10,7 @@ const { PrismaClient } = require('@prisma/client');
 const Boom = require('@hapi/boom');
 const blacklist = new Set();
 const axios = require('axios');
+const admin = require("./../../firebase/firebase"); // Impor Firebase Admin SDK
 
 // let pool;
 
@@ -90,6 +91,31 @@ async function logout(request, h) {
   } catch (error) {
       console.error('Logout Error:', error);
       return Boom.internal('Something went wrong during logout.');
+  }
+}
+
+// Login firebase 
+async function firebaseLogin (request, h) {
+  const token = request.payload.token; // Ambil token dari payload
+  
+  try {
+    // Verifikasi token menggunakan Firebase Admin SDK
+    const decodedToken = await admin.auth().verifyIdToken(token);
+    
+    // Ambil nama dan email dari token yang sudah diverifikasi
+    const { name, email } = decodedToken;
+    
+    return h.response({
+      success: true,
+      name,
+      email
+    });
+  } catch (error) {
+    console.error("Error verifying token:", error);
+    return h.response({
+      success: false,
+      message: "Invalid token"
+    }).code(401);
   }
 }
 
@@ -690,4 +716,5 @@ module.exports = {
   loginCallback1, 
   loginCallback, 
   accessValidation,
+  firebaseLogin
 };

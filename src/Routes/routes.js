@@ -70,6 +70,11 @@ const routes = [
     path: '/history/{id}',
     handler: handlers.historyByUserId,
   },
+  {
+    method: 'POST',
+    path: '/getUser',
+    handlers: handlers.firebaseLogin
+  }
 ];
 
 module.exports = routes;
